@@ -15,21 +15,22 @@
 
 using System;
 using System.Collections.Generic;
-using System.Diagnostics;
+using System.ComponentModel;
 using System.Drawing;
 using System.Linq;
 using System.Windows.Forms;
 using System.Windows.Forms.VisualStyles;
 using TaskSharp.Native;
-using TaskSharp.Wrappers;
 using TaskSharp.Rendering;
+using TaskSharp.Wrappers;
 
 namespace TaskSharp
 {
     public partial class Taskbar : Form
     {
-        private Color _backColor;
-        private bool _isGlassSupported = false;
+        //testing
+        //private Color _backColor;
+        //private bool _isGlassSupported = false;
         private StyleRenderer _taskBarRenderer;
         private Screen _screen;
         private Dictionary<IntPtr, TaskbarButton> _buttonMap = new Dictionary<IntPtr, TaskbarButton>();
@@ -65,68 +66,43 @@ namespace TaskSharp
         public Taskbar()
         {
             InitializeComponent();
-            if (Environment.OSVersion.Version.Major >= 6)
-            {
-                DWM.IsCompositionEnabled(ref _isGlassSupported);
-                _backColor = DWM.GlassColor();
-                if (_isGlassSupported)
-                {
-                    var marg = new DWM.MARGINS();
-                    marg.Top = 0;
-                    marg.Left = 0;
-                    marg.Right = ClientSize.Width;
-                    marg.Bottom = ClientSize.Height;
-                    DWM.ExtendFrameIntoClientArea(this.Handle, ref marg);
-                }
-            }
+            //testing
+            //if (Environment.OSVersion.Version.Major >= 6)
+            //{
+            //    DWM.IsCompositionEnabled(ref _isGlassSupported);
+            //    _backColor = DWM.GlassColor();
+            //    if (_isGlassSupported)
+            //    {
+            //        var marg = new DWM.MARGINS();
+            //        marg.Top = 0;
+            //        marg.Left = 0;
+            //        marg.Right = ClientSize.Width;
+            //        marg.Bottom = ClientSize.Height;
+            //        DWM.ExtendFrameIntoClientArea(this.Handle, ref marg);
+            //    }
+            //}
         }
 
-        private List<VisibleWindow> GetAppsOfMyScreen()
+        private void AddButton(VisibleWindow window)
         {
-            var wnds = new List<VisibleWindow>();
-            foreach (var p in Process.GetProcesses())
+            if (!_buttonMap.ContainsKey(window.Hwnd))
             {
-                if (!string.IsNullOrEmpty(p.MainWindowTitle) && Win32.HasWindow(p.MainWindowHandle))
+                var btn = new TaskbarButton(window)
                 {
-                    VisibleWindow wnd = new VisibleWindow(p);
-                    wnds.Add(wnd);
-                }
+                    Height = GetButtonHeight(),
+                    Width = GetButtonWidth(),
+                };
+                _flp.Controls.Add(btn);
+                _buttonMap.Add(window.Hwnd, btn);
             }
-            return wnds;
         }
-        private void UpdateTaskbar(List<VisibleWindow> windows)
+        private void RemoveButton(VisibleWindow window)
         {
-            //MessageBox.Show("window count: " + windows.Count);
-            //_flp.Controls.Clear();
-            foreach (var item in windows)
+            if (_buttonMap.ContainsKey(window.Hwnd))// && !window.IsMinimized)
             {
-                if (Win32.ScreenContainsWindow(item.Hwnd, _screen))
-                {
-                    if (!_buttonMap.ContainsKey(item.Hwnd))
-                    {
-                        var btn = new TaskbarButton(item)
-                        {
-                            Height = GetButtonHeight(),
-                            Width = GetButtonWidth(),
-                        };
-                        _flp.Controls.Add(btn);
-                        _buttonMap.Add(item.Hwnd, btn);
-                    }
-                }
-                else if (_buttonMap.ContainsKey(item.Hwnd) && !item.IsMinimized)
-                {
-                    _flp.Controls.Remove(_buttonMap[item.Hwnd]);
-                    _buttonMap[item.Hwnd].Dispose();
-                    _buttonMap.Remove(item.Hwnd);
-                }
-            }
-
-            foreach (var button in _flp.Controls.OfType<TaskbarButton>()
-                .Where(b => !windows.Contains(b.Window) && !b.Window.IsMinimized))
-            {
-                _flp.Controls.Remove(button);
-                _buttonMap[button.Window.Hwnd].Dispose();
-                _buttonMap.Remove(button.Window.Hwnd);
+                _flp.Controls.Remove(_buttonMap[window.Hwnd]);
+                _buttonMap[window.Hwnd].Dispose();
+                _buttonMap.Remove(window.Hwnd);
             }
         }
 
@@ -154,9 +130,7 @@ namespace TaskSharp
 
             Screen taskBarScreen = Screen.FromRectangle(rect);
             if (taskBarScreen == null)
-                MessageBox.Show("cant find screen for taskbar");
-            //else
-            //    MessageBox.Show("Taskbar is on screen " + taskBarScreen.DeviceName);
+                throw new InvalidOperationException("Cant find screen for taskbar");
             var otherScreens = Screen.AllScreens.Where(s => !s.Equals(taskBarScreen));
 
             var fs = otherScreens.FirstOrDefault();
@@ -166,11 +140,6 @@ namespace TaskSharp
                 Close();
                 return;
             }
-            //else
-            //{
-            //    MessageBox.Show("Guess i should be on " + fs.DeviceName);
-            //    this.Location = Point.Add(fs.WorkingArea.Location, Size.Empty);
-            //}
 
             _screen = fs;
             _taskBarRenderer = GetRenderer(edge);
@@ -182,6 +151,55 @@ namespace TaskSharp
                 Width = rect.Width;
 
             AppBar.Register(this, edge, fs);
+            WindowManager.OpenWindows.WindowListChanged += OpenWindows_WindowListChanged;
+        }
+
+        private void InvokeOrNot(MethodInvoker method)
+        {
+            if (InvokeRequired)
+                Invoke(method);
+            else
+                method();
+        }
+        void OpenWindows_WindowListChanged(object sender, WindowListChangedEventArgs e)
+        {
+            VisibleWindow changedItem = e.Window;
+            if (e.ListChangedType != ListChangedType.ItemChanged &&
+                (changedItem == null ||
+                 changedItem.Screen == null ||
+                 !changedItem.Screen.Equals(_screen)))
+                return;
+
+            switch (e.ListChangedType)
+            {
+                case ListChangedType.ItemAdded:
+                    InvokeOrNot(() => AddButton(changedItem));
+                    break;
+                case ListChangedType.ItemChanged:
+                    InvokeOrNot(() =>
+                    {
+                        if (changedItem.Screen.Equals(_screen))
+                            AddButton(changedItem);
+                        else
+                            RemoveButton(changedItem);
+                    });
+                    break;
+                case ListChangedType.ItemDeleted:
+                    InvokeOrNot(() => RemoveButton(changedItem));
+                    break;
+                case ListChangedType.ItemMoved:
+                    break;
+                case ListChangedType.PropertyDescriptorAdded:
+                    break;
+                case ListChangedType.PropertyDescriptorChanged:
+                    break;
+                case ListChangedType.PropertyDescriptorDeleted:
+                    break;
+                case ListChangedType.Reset:
+                    break;
+                default:
+                    break;
+            }
         }
 
         private static StyleRenderer GetRenderer(AppBarEdge edge)
@@ -218,11 +236,6 @@ namespace TaskSharp
         private void quitToolStripMenuItem_Click(object sender, EventArgs e)
         {
             this.Close();
-        }
-
-        private void timer1_Tick(object sender, EventArgs e)
-        {
-            UpdateTaskbar(GetAppsOfMyScreen());
         }
     }
 }

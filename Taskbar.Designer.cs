@@ -33,7 +33,6 @@
             this._cmsRight = new System.Windows.Forms.ContextMenuStrip(this.components);
             this.quitToolStripMenuItem = new System.Windows.Forms.ToolStripMenuItem();
             this._flp = new System.Windows.Forms.FlowLayoutPanel();
-            this.timer1 = new System.Windows.Forms.Timer(this.components);
             this._cmsRight.SuspendLayout();
             this.SuspendLayout();
             // 
@@ -62,12 +61,6 @@
             this._flp.Size = new System.Drawing.Size(292, 273);
             this._flp.TabIndex = 1;
             // 
-            // timer1
-            // 
-            this.timer1.Enabled = true;
-            this.timer1.Interval = 1000;
-            this.timer1.Tick += new System.EventHandler(this.timer1_Tick);
-            // 
             // Taskbar
             // 
             this.AutoScaleMode = System.Windows.Forms.AutoScaleMode.None;
@@ -89,7 +82,6 @@
         private System.Windows.Forms.ContextMenuStrip _cmsRight;
         private System.Windows.Forms.ToolStripMenuItem quitToolStripMenuItem;
         private System.Windows.Forms.FlowLayoutPanel _flp;
-        private System.Windows.Forms.Timer timer1;
     }
 }
 

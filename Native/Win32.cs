@@ -180,11 +180,15 @@ namespace TaskSharp.Native
                 return false;
             return (GetWindowLong(hWnd, GWL_STYLE) & (int)(WindowStyles.WS_BORDER | WindowStyles.WS_VISIBLE)) > 0;
         }
-        public static bool ScreenContainsWindow(IntPtr WindowHandle, Screen screen)
+        public static Screen GetScreenFromWindow(IntPtr windowHandle)
         {
             WINDOWINFO windowinfo = new WINDOWINFO { cbSize = (uint)Marshal.SizeOf(typeof(WINDOWINFO)) };
-            GetWindowInfo(WindowHandle, ref windowinfo);
-            return (Screen.FromRectangle(windowinfo.rcWindow.ToRectangle()).Equals(screen));
+            GetWindowInfo(windowHandle, ref windowinfo);
+            return Screen.FromRectangle(windowinfo.rcWindow.ToRectangle());
+        }
+        public static bool ScreenContainsWindow(IntPtr windowHandle, Screen screen)
+        {
+            return GetScreenFromWindow(windowHandle).Equals(screen);
         }
     }
 }

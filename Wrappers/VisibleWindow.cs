@@ -15,16 +15,17 @@
 
 using System;
 using System.Collections.Generic;
+using System.ComponentModel;
 using System.Diagnostics;
 using System.Drawing;
 using System.IO;
+using System.Linq.Expressions;
 using System.Windows.Forms;
 using TaskSharp.Native;
 
 namespace TaskSharp.Wrappers
 {
-    [DebuggerDisplay("\\{ Title = {Title}, ExeName = {ExeName}, Hwnd = {Hwnd}, Icon = {Icon} \\}")]
-    public sealed class VisibleWindow : IEquatable<VisibleWindow>
+    public sealed class VisibleWindow : IEquatable<VisibleWindow>, INotifyPropertyChanged
     {
         private readonly string _title;
         private readonly string _exeName;
@@ -81,10 +82,6 @@ namespace TaskSharp.Wrappers
         {
             if (obj == null)
                 return false;
-            if (!EqualityComparer<string>.Default.Equals(_title, obj._title))
-                return false;
-            if (!EqualityComparer<string>.Default.Equals(_exePath, obj._exePath))
-                return false;
             if (!EqualityComparer<IntPtr>.Default.Equals(_hwnd, obj._hwnd))
                 return false;
             return true;
@@ -92,14 +89,12 @@ namespace TaskSharp.Wrappers
         public override int GetHashCode()
         {
             int hash = 0;
-            hash ^= EqualityComparer<string>.Default.GetHashCode(_title);
-            hash ^= EqualityComparer<string>.Default.GetHashCode(_exePath);
             hash ^= EqualityComparer<IntPtr>.Default.GetHashCode(_hwnd);
             return hash;
         }
         public override string ToString()
         {
-            return String.Format("{{ Title = {0}, ExePath = {1}, Hwnd = {2} }}", _title, _exePath, _hwnd);
+            return string.Format("{0} ({1}x{2})", _title, _hwnd, Screen);
         }
 
         public FormWindowState WindowState
@@ -134,5 +129,35 @@ namespace TaskSharp.Wrappers
         {
             get { return _icon; }
         }
+        private Screen _screen;
+        public Screen Screen
+        {
+            get { return _screen; }
+            internal set
+            {
+                if (value != _screen)
+                {
+                    _screen = value;
+                    FirePropertyChanged(() => Screen);
+                }
+            }
+        }
+
+        #region INotifyPropertyChanged Members
+
+        public event PropertyChangedEventHandler PropertyChanged;
+
+        private void FirePropertyChanged<T>(Expression<Func<T>> expression)
+        {
+            var propertyChanged = PropertyChanged;
+            if (propertyChanged != null)
+            {
+                var lambda = expression as LambdaExpression;
+                var memberExpression = lambda.Body is UnaryExpression ? ((UnaryExpression)lambda.Body).Operand as MemberExpression : lambda.Body as MemberExpression;
+                propertyChanged(this, new PropertyChangedEventArgs(memberExpression.Member.Name));
+            }
+        }
+
+        #endregion
     }
 }

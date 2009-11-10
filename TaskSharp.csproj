@@ -51,6 +51,8 @@
     <Compile Include="Native\AppBar.cs" />
     <Compile Include="Native\DWM.cs" />
     <Compile Include="Rendering\ClassicStyleRenderer.cs" />
+    <Compile Include="WindowBindingList.cs" />
+    <Compile Include="WindowManager.cs" />
     <Compile Include="Wrappers\ManagedHdc.cs" />
     <Compile Include="Rendering\ManagedStyleRenderer.cs" />
     <Compile Include="Rendering\NativeVisualStyleRenderer.cs" />

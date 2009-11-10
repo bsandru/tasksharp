@@ -32,10 +32,14 @@ namespace TaskSharp
                 AppDomain.CurrentDomain.UnhandledException += new UnhandledExceptionEventHandler(CurrentDomain_UnhandledException);
                 Application.EnableVisualStyles();
                 Application.SetCompatibleTextRenderingDefault(false);
+
+                WindowManager.Start();
+
                 Application.Run(new Taskbar());
             }
             finally
             {
+                WindowManager.Stop();
                 UxTheme.CloseThemes();
                 AppBar.UnregisterAll();
             }
@@ -43,7 +47,15 @@ namespace TaskSharp
 
         static void CurrentDomain_UnhandledException(object sender, UnhandledExceptionEventArgs e)
         {
-            MessageBox.Show(e.ExceptionObject.ToString());
+            MessageBox.Show(
+                string.Format(
+@"An unexpected error occurred. {0}
+------------------
+{1}
+------------------
+Hit Ctrl+C to copy this message.",
+                e.IsTerminating ? "TaskSharp will now terminate." : "",
+                e.ExceptionObject.ToString()));
         }
     }
 }
