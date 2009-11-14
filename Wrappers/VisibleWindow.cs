@@ -46,17 +46,17 @@ namespace TaskSharp.Wrappers
 
         private void Restore()
         {
-            Win32.ShowWindow(Hwnd, Win32.SW.RESTORE);
+            Win32.ShowWindow(Hwnd, Win32.SW.Restore);
             Win32.SetForegroundWindow(Hwnd);
         }
         private void Show()
         {
-            Win32.ShowWindow(Hwnd, Win32.SW.SHOW);
+            Win32.ShowWindow(Hwnd, Win32.SW.Show);
             Win32.SetForegroundWindow(Hwnd);
         }
         private void Minimize()
         {
-            Win32.ShowWindow(Hwnd, Win32.SW.MINIMIZE);
+            Win32.ShowWindow(Hwnd, Win32.SW.Minimize);
         }
         public void ToggleMinimize()
         {
@@ -67,6 +67,11 @@ namespace TaskSharp.Wrappers
             else
                 Minimize();
         }
+        public void ShowButtonOnTaskbar(bool show)
+        {
+            Win32.ShowTaskbarButton(Hwnd, !show);
+        }
+
         public void ShowSystemMenu(Point pos)
         {
             //0x313 seems to be undocumented, but works

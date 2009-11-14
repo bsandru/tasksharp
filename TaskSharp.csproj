@@ -50,6 +50,7 @@
   <ItemGroup>
     <Compile Include="Native\AppBar.cs" />
     <Compile Include="Native\DWM.cs" />
+    <Compile Include="Native\TaskbarList.cs" />
     <Compile Include="Rendering\ClassicStyleRenderer.cs" />
     <Compile Include="WindowBindingList.cs" />
     <Compile Include="WindowManager.cs" />

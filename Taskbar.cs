@@ -39,7 +39,6 @@ namespace TaskSharp
         {
             get { return true; } //do not steal focus
         }
-        private const int WS_EX_NOACTIVATE = 0x08000000;
         private const int WM_MOUSEACTIVATE = 0x0021;
         private const int MA_NOACTIVATE = 0x0003;
         /// <summary>
@@ -50,7 +49,8 @@ namespace TaskSharp
             get
             {
                 CreateParams moo = base.CreateParams;
-                moo.ExStyle = WS_EX_NOACTIVATE;
+                //http://support.microsoft.com/kb/132965
+                moo.ExStyle |= (int)(Win32.WS.ExNoActivate | Win32.WS.ExToolWindow);
                 return moo;
             }
         }
@@ -94,6 +94,7 @@ namespace TaskSharp
                 };
                 _flp.Controls.Add(btn);
                 _buttonMap.Add(window.Hwnd, btn);
+                window.ShowButtonOnTaskbar(false);
             }
         }
         private void RemoveButton(VisibleWindow window)
@@ -103,6 +104,7 @@ namespace TaskSharp
                 _flp.Controls.Remove(_buttonMap[window.Hwnd]);
                 _buttonMap[window.Hwnd].Dispose();
                 _buttonMap.Remove(window.Hwnd);
+                window.ShowButtonOnTaskbar(true);
             }
         }
 
@@ -156,6 +158,8 @@ namespace TaskSharp
 
         private void InvokeOrNot(MethodInvoker method)
         {
+            if (IsDisposed)
+                return;
             if (InvokeRequired)
                 Invoke(method);
             else
@@ -163,6 +167,8 @@ namespace TaskSharp
         }
         void OpenWindows_WindowListChanged(object sender, WindowListChangedEventArgs e)
         {
+            if (IsDisposed)
+                return;
             VisibleWindow changedItem = e.Window;
             if (e.ListChangedType != ListChangedType.ItemChanged &&
                 (changedItem == null ||
