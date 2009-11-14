@@ -79,62 +79,69 @@ namespace TaskSharp.Native
         }
 
         [Flags]
-        public enum WindowStyles : uint
+        public enum WS : uint
         {
-            WS_BORDER = 0x800000,
-            WS_CAPTION = 0xc00000,
-            WS_CHILD = 0x40000000,
-            WS_CHILDWINDOW = 0x40000000,
-            WS_CLIPCHILDREN = 0x2000000,
-            WS_CLIPSIBLINGS = 0x4000000,
-            WS_DISABLED = 0x8000000,
-            WS_DLGFRAME = 0x400000,
-            WS_GROUP = 0x20000,
-            WS_HSCROLL = 0x100000,
-            WS_ICONIC = 0x20000000,
-            WS_MAXIMIZE = 0x1000000,
-            WS_MAXIMIZEBOX = 0x10000,
-            WS_MINIMIZE = 0x20000000,
-            WS_MINIMIZEBOX = 0x20000,
-            WS_OVERLAPPED = 0,
-            WS_OVERLAPPEDWINDOW = 0xcf0000,
-            WS_POPUP = 0x80000000,
-            WS_POPUPWINDOW = 0x80880000,
-            WS_SIZEBOX = 0x40000,
-            WS_SYSMENU = 0x80000,
-            WS_TABSTOP = 0x10000,
-            WS_THICKFRAME = 0x40000,
-            WS_TILED = 0,
-            WS_TILEDWINDOW = 0xcf0000,
-            WS_VISIBLE = 0x10000000,
-            WS_VSCROLL = 0x200000
+            Border = 0x800000,
+            Caption = 0xc00000,
+            Child = 0x40000000,
+            ChildWindow = 0x40000000,
+            ClipChildren = 0x2000000,
+            ClipSiblings = 0x4000000,
+            Disabled = 0x8000000,
+            DlgFrame = 0x400000,
+            Group = 0x20000,
+            HScroll = 0x100000,
+            Iconic = 0x20000000,
+            Maximize = 0x1000000,
+            MaximizeBox = 0x10000,
+            Minimize = 0x20000000,
+            MinimizeBox = 0x20000,
+            Overlapped = 0,
+            OverlappedWindow = 0xcf0000,
+            Popup = 0x80000000,
+            PopupWindow = 0x80880000,
+            SizeBox = 0x40000,
+            SysMenu = 0x80000,
+            Tabstop = 0x10000,
+            ThickFrame = 0x40000,
+            Tiled = 0,
+            TiledWindow = 0xcf0000,
+            Visible = 0x10000000,
+            VScroll = 0x200000,
+
+            ExToolWindow  = 0x00000080,
+            ExAppWindow = 0x00040000,
+            ExNoActivate = 0x08000000,
         }
 
         [Flags]
         public enum SW
         {
-            FORCEMINIMIZE = 11,
-            HIDE = 0,
-            MAX = 11,
-            MAXIMIZE = 3,
-            MINIMIZE = 6,
-            NORMAL = 1,
-            RESTORE = 9,
-            SHOW = 5,
-            SHOWDEFAULT = 10,
-            SHOWMAXIMIZED = 3,
-            SHOWMINIMIZED = 2,
-            SHOWMINNOACTIVE = 7,
-            SHOWNA = 8,
-            SHOWNOACTIVATE = 4,
-            SHOWNORMAL = 1
+            ForceMinimize = 11,
+            Hide = 0,
+            Max = 11,
+            Maximize = 3,
+            Minimize = 6,
+            Normal = 1,
+            Restore = 9,
+            Show = 5,
+            ShowDefault = 10,
+            ShowMaximized = 3,
+            ShowMinimized = 2,
+            ShowMinNoActive = 7,
+            ShowNA = 8,
+            ShowNoActivate = 4,
+            ShowNormal = 1
         }
 
         [DllImport("user32.dll", CharSet = CharSet.Auto)]
         public static extern IntPtr SendMessage(IntPtr hWnd, uint Msg, IntPtr wParam, IntPtr lParam);
 
         [DllImport("user32.dll")]
-        public static extern int GetWindowLong(IntPtr hWnd, int nIndex);
+        [return: MarshalAs(UnmanagedType.U4)]
+        public static extern WS GetWindowLong(IntPtr hWnd, [MarshalAs(UnmanagedType.U4)] GWL nIndex);
+        [DllImport("user32.dll")]
+        public static extern int SetWindowLong(IntPtr hWnd, [MarshalAs(UnmanagedType.U4)] GWL nIndex, [MarshalAs(UnmanagedType.U4)] WS dwNewLong);
 
         [DllImport("user32.dll")]
         public static extern bool GetWindowInfo(IntPtr hwnd, ref WINDOWINFO pwi);
@@ -148,6 +155,28 @@ namespace TaskSharp.Native
         public static extern bool SetForegroundWindow(IntPtr hWnd);
         [DllImport("user32.dll")]
         public static extern int ShowWindow(IntPtr hwnd, SW nCmdShow);
+        [DllImport("user32.dll")]
+        [return: MarshalAs(UnmanagedType.Bool)]
+        public static extern bool IsWindowVisible(IntPtr hWnd);
+        [DllImport("user32.dll", ExactSpelling = true, CharSet = CharSet.Auto)]
+        public static extern IntPtr GetParent(IntPtr hWnd);
+        [DllImport("user32.dll", SetLastError = true)]
+        static extern IntPtr GetWindow(IntPtr hWnd, [MarshalAs(UnmanagedType.U4)]GW uCmd);
+
+        public enum GWL : uint
+        {
+            ExStyle = 0xffffffec, //(-20),
+        }
+        enum GW : uint
+        {
+            HwndFirst = 0,
+            HwndLast = 1,
+            HwndNext = 2,
+            HwndPrev = 3,
+            Owner = 4,
+            Child = 5,
+            EnabledPopup = 6
+        }
 
         [DllImport("user32.dll")]
         public static extern bool GetCursorPos(ref POINT lpPoint);
@@ -165,6 +194,17 @@ namespace TaskSharp.Native
             public Rectangle rcNormalPosition;
         }
 
+        public static void ShowTaskbarButton(IntPtr hwnd, bool remove)
+        {
+            var tbl = (ITaskbarList)new TaskbarList();
+
+            tbl.HrInit();
+            if (remove)
+                tbl.DeleteTab(hwnd);
+            else
+                tbl.AddTab(hwnd);
+        }
+
         public static FormWindowState GetWindowState(IntPtr hWnd)
         {
             WINDOWPLACEMENT placement = new WINDOWPLACEMENT();
@@ -178,7 +218,14 @@ namespace TaskSharp.Native
         {
             if (hWnd == IntPtr.Zero)
                 return false;
-            return (GetWindowLong(hWnd, GWL_STYLE) & (int)(WindowStyles.WS_BORDER | WindowStyles.WS_VISIBLE)) > 0;
+            if (!IsWindowVisible(hWnd))
+                return false;
+            if (GetWindow(hWnd, GW.Owner) != IntPtr.Zero)
+                return false;
+            if (GetParent(hWnd) != IntPtr.Zero)
+                return false;
+
+            return (GetWindowLong(hWnd, GWL.ExStyle) & WS.ExToolWindow) == 0;
         }
         public static Screen GetScreenFromWindow(IntPtr windowHandle)
         {

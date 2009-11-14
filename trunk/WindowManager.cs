@@ -43,6 +43,8 @@ namespace TaskSharp
         {
             if (_timer != null)
                 _timer.Stop();
+            foreach (var window in _openWindows)
+                window.ShowButtonOnTaskbar(true);
             _openWindows.Clear();
         }
         private static void Timer_Elapsed(object sender, ElapsedEventArgs e)
@@ -50,10 +52,10 @@ namespace TaskSharp
             var windows = new List<VisibleWindow>();
             foreach (var p in Process.GetProcesses())
             {
-                string hWnd = p.MainWindowTitle;
-                if (!string.IsNullOrEmpty(hWnd) && Win32.HasWindow(p.MainWindowHandle))
+                var hWnd = p.MainWindowHandle;
+                if (/*!string.IsNullOrEmpty(p.MainWindowTitle) &&*/ Win32.HasWindow(hWnd))
                 {
-                    var screen = Win32.GetScreenFromWindow(p.MainWindowHandle);
+                    var screen = Win32.GetScreenFromWindow(hWnd);
                     VisibleWindow window = new VisibleWindow(p);
                     windows.Add(window);
                     if (_openWindows.Contains(window))
