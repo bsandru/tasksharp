@@ -114,7 +114,13 @@ namespace TaskSharp
         }
         private int GetButtonHeight()
         {
-            return 30;
+            return 30 - GetThemeHeightDifference();
+        }
+        private int GetThemeHeightDifference()
+        {
+            if (StyleRenderer.IsSupported)
+                return 0;
+            return 3; //classic seems to be off by 3?
         }
         protected override void OnLoad(EventArgs e)
         {
@@ -146,11 +152,19 @@ namespace TaskSharp
             _screen = fs;
             _taskBarRenderer = GetRenderer(edge);
 
+            int mod = GetThemeHeightDifference();
+
             bool isHorizontal = (edge & (AppBarEdge.Bottom | AppBarEdge.Top)) > 0;
             if (isHorizontal)
+            {
+                rect.Height -= mod;
                 Height = rect.Height;
+            }
             else
+            {
+                rect.Width -= mod;
                 Width = rect.Width;
+            }
 
             AppBar.Register(this, edge, fs);
             WindowManager.OpenWindows.WindowListChanged += OpenWindows_WindowListChanged;
@@ -182,13 +196,23 @@ namespace TaskSharp
                     InvokeOrNot(() => AddButton(changedItem));
                     break;
                 case ListChangedType.ItemChanged:
-                    InvokeOrNot(() =>
+                    if (e.PropertyDescriptor != null)
                     {
-                        if (changedItem.Screen.Equals(_screen))
-                            AddButton(changedItem);
-                        else
-                            RemoveButton(changedItem);
-                    });
+                        if (e.PropertyDescriptor.Name == "Screen")
+                        {
+                            InvokeOrNot(() =>
+                            {
+                                if (changedItem.Screen.Equals(_screen))
+                                    AddButton(changedItem);
+                                else
+                                    RemoveButton(changedItem);
+                            });
+                        }
+                        else if (e.PropertyDescriptor.Name == "IsForeground" && _buttonMap.ContainsKey(changedItem.Hwnd))
+                        {
+                            InvokeOrNot(() => _buttonMap[changedItem.Hwnd].Invalidate());
+                        }
+                    }
                     break;
                 case ListChangedType.ItemDeleted:
                     InvokeOrNot(() => RemoveButton(changedItem));

@@ -34,7 +34,8 @@ namespace TaskSharp
 
         public static void Start()
         {
-            _timer = new Timer(1000);
+            _timer = new Timer(500);
+            //_timer = new Timer(1000);
             _timer.AutoReset = true;
             _timer.Elapsed += Timer_Elapsed;
             _timer.Start();
@@ -49,6 +50,8 @@ namespace TaskSharp
         }
         private static void Timer_Elapsed(object sender, ElapsedEventArgs e)
         {
+            var activeWindow = Win32.GetForegroundWindow();
+
             var windows = new List<VisibleWindow>();
             foreach (var p in Process.GetProcesses())
             {
@@ -61,11 +64,14 @@ namespace TaskSharp
                     if (_openWindows.Contains(window))
                         window = _openWindows.First(w => w.Equals(window));
                     window.Screen = screen;
+                    window.IsForeground = window.Hwnd == activeWindow;
                 }
             }
 
             if (windows.Any())
             {
+                //TODO: sometimes a window gets lost in the loop above,
+                //      and is removed here...next loop, its back?
                 var newWindows = windows.Where(w => !_openWindows.Contains(w)).ToArray();
                 var goneWindows = _openWindows.Where(w => !windows.Contains(w)).ToArray();
                 foreach (var newWindow in newWindows)

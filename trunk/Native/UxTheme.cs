@@ -16,12 +16,16 @@
 using System;
 using System.Collections.Generic;
 using System.Runtime.InteropServices;
+using System.Drawing;
+using TaskSharp.Wrappers;
+using System.Text;
 
 namespace TaskSharp.Native
 {
     internal class UxTheme
     {
         private static Dictionary<string, IntPtr> _themeMap = new Dictionary<string, IntPtr>();
+        private static Dictionary<IntPtr, Font> _themeFontMap = new Dictionary<IntPtr, Font>();
 
         [DllImport("uxtheme.dll", CharSet = CharSet.Unicode, ExactSpelling = true)]
         public static extern IntPtr OpenThemeData(IntPtr hWnd, [MarshalAs(UnmanagedType.LPTStr)] string pszClassList);
@@ -39,7 +43,34 @@ namespace TaskSharp.Native
         public extern static int DrawThemeText(IntPtr hTheme, IntPtr hdc, int iPartId, int iStateId, string text, int textLength, uint textFlags, uint textFlags2, ref Win32.RECT pRect);
 
         [DllImport("uxtheme.dll", CharSet = CharSet.Unicode, ExactSpelling = true)]
+        private static extern int GetThemeFont(IntPtr hTheme, IntPtr hdc, int iPartId, int iStateId, [MarshalAs(UnmanagedType.I4)] PropertyIdentifier iPropId, out LOGFONT pFont);
+
+        [DllImport("uxtheme.dll", CharSet = CharSet.Unicode, ExactSpelling = true)]
         public static extern int SetWindowTheme(IntPtr hWnd, string pszSubAppName, string pszSubAppList);
+
+        private enum PropertyIdentifier
+        {
+            Font = 210, //TMT_FONT
+        }
+        [StructLayout(LayoutKind.Sequential, CharSet = CharSet.Unicode)]
+        private struct LOGFONT
+        {
+            public int Height;
+            public int Width;
+            public int Escapement;
+            public int Orientation;
+            public int Weight;
+            public byte Italic;
+            public byte Underline;
+            public byte StrikeOut;
+            public byte Charset;
+            public byte OutPrecision;
+            public byte ClipPrecision;
+            public byte Quality;
+            public byte PitchAndFamily;
+            [MarshalAs(UnmanagedType.ByValTStr, SizeConst = 32)]
+            public string FaceName;
+        }
 
         public static IntPtr OpenTheme(IntPtr handle, string className)
         {
@@ -60,6 +91,23 @@ namespace TaskSharp.Native
                 }
                 catch { }
             }
+        }
+        public static Font GetThemeFont(IntPtr theme, Graphics graphics)
+        {
+            if (!_themeFontMap.ContainsKey(theme))
+            {
+                using (var m = ManagedHdc.FromGraphics(graphics))
+                {
+                    LOGFONT font = new LOGFONT();
+                    int ret = GetThemeFont(theme, m.Hdc, 1, 1, PropertyIdentifier.Font, out font);
+                    if (ret != 0)
+                        return SystemFonts.CaptionFont;
+                    Font themeFont = Font.FromLogFont(font);
+                    _themeFontMap.Add(theme, themeFont);
+                    return themeFont;
+                }
+            }
+            return _themeFontMap[theme];
         }
     }
 }

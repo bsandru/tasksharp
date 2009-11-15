@@ -50,7 +50,7 @@ namespace TaskSharp.Rendering
         }
         public override void DrawText(Graphics graphics, Rectangle bounds, string text)
         {
-            _renderer.DrawText(graphics, bounds, text);
+            _renderer.DrawText(graphics, bounds, text, false, TextFormatFlags.EndEllipsis);
         }
         public override void DrawImage(Graphics graphics, Rectangle bounds, Image image)
         {

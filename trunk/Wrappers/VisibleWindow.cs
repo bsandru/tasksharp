@@ -48,11 +48,13 @@ namespace TaskSharp.Wrappers
         {
             Win32.ShowWindow(Hwnd, Win32.SW.Restore);
             Win32.SetForegroundWindow(Hwnd);
+            IsForeground = true;
         }
         private void Show()
         {
             Win32.ShowWindow(Hwnd, Win32.SW.Show);
             Win32.SetForegroundWindow(Hwnd);
+            IsForeground = true;
         }
         private void Minimize()
         {
@@ -106,9 +108,19 @@ namespace TaskSharp.Wrappers
         {
             get { return Win32.GetWindowState(Hwnd); }
         }
+        private bool _isForeground;
         public bool IsForeground
         {
-            get { return Win32.GetForegroundWindow() == Hwnd; }
+            //get { return Win32.GetForegroundWindow() == Hwnd; }
+            get { return _isForeground; }
+            internal set
+            {
+                if (value != _isForeground)
+                {
+                    _isForeground = value;
+                    FirePropertyChanged(() => IsForeground);
+                }
+            }
         }
         public bool IsMinimized
         {

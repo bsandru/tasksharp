@@ -63,7 +63,8 @@ namespace TaskSharp.Rendering
             using (var mh = ManagedHdc.FromGraphics(graphics))
             {
                 var rect = Win32.RECT.FromRectangle(bounds);
-                UxTheme.DrawThemeText(_theme, mh.Hdc, _partId, _stateId, text, text.Length, 0, 0, ref rect);
+                uint flags = (int)(TextFormatFlags.EndEllipsis);
+                UxTheme.DrawThemeText(_theme, mh.Hdc, _partId, _stateId, text, text.Length, flags, 0, ref rect);
             }
         }
         public override void DrawImage(Graphics graphics, Rectangle bounds, Image image)
