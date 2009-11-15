@@ -27,7 +27,6 @@ namespace TaskSharp
     {
         private bool _mouseDown;
         private bool _mouseOver;
-        private IntPtr theme = IntPtr.Zero;
         public VisibleWindow Window { get; private set; }
         public Icon Icon { get; set; }
         public Image Image { get; set; }
@@ -92,19 +91,12 @@ namespace TaskSharp
 
                 var imageRect = GetImageRectangle();
                 buttonRenderer.DrawImage(pevent.Graphics, imageRect, Image);
+
                 var textRect = Rectangle.Inflate(rect, 0, 0);
-                textRect.Offset(imageRect.X + imageRect.Width + 7, 8);
-                string textToDraw = Text;
-                //var textSize = pevent.Graphics.MeasureString(textToDraw, Font);
-                //int back = 1;
-                //int textLength = Text.Length;
-                //while (textRect.Width < textSize.Width)
-                //{
-                //    textToDraw = textToDraw.Remove(Math.Max(textLength - (back + 3), 1)) + "...";
-                //    back += 3;
-                //    textSize = pevent.Graphics.MeasureString(textToDraw, Font);
-                //}
-                buttonRenderer.DrawText(pevent.Graphics, textRect, textToDraw);
+                int imageOffsetX = imageRect.X + imageRect.Width + 7;
+                textRect.Offset(imageOffsetX, 8);
+                textRect.Width -= (imageOffsetX + 8);
+                buttonRenderer.DrawText(pevent.Graphics, textRect, Text);
             }
             else
                 base.OnPaintBackground(pevent);
@@ -116,18 +108,27 @@ namespace TaskSharp
         }
         private StyleRenderer GetButtonRenderer()
         {
-            if (!StyleRenderer.IsSupported)
-                return new ClassicButtonStyleRenderer();
+            VisualStyleElement element;
             if (_mouseDown)
-                return new NativeStyleRenderer(base.Handle, VisualStyleElement.ToolBar.Button.Pressed);
-            //return new ManagedStyleRenderer(VisualStyleElement.ToolBar.Button.Pressed);
+                element = VisualStyleElement.ToolBar.Button.Pressed;
             else if (_mouseOver)
-                return new NativeStyleRenderer(base.Handle, VisualStyleElement.ToolBar.Button.HotChecked);
-            //return new ManagedStyleRenderer(VisualStyleElement.ToolBar.Button.HotChecked);
-            return new NativeStyleRenderer(base.Handle, VisualStyleElement.ToolBar.Button.Normal);
-            //return new VisualStyleRenderer("Toolbar", 1, 2);
-            //return new VisualStyleRenderer("TaskBand", 0, 0);
-            //return new VisualStyleRenderer(VisualStyleElement.TaskBand.FlashButton.Normal);
+            {
+                if (Window.IsForeground)
+                    element = VisualStyleElement.ToolBar.Button.HotChecked;
+                else
+                    element = VisualStyleElement.ToolBar.Button.Hot;
+            }
+            else
+            {
+                if (Window.IsForeground)
+                    element = VisualStyleElement.ToolBar.Button.Checked;
+                else
+                    element = VisualStyleElement.ToolBar.Button.Normal;
+            }
+
+            if (!StyleRenderer.IsSupported)
+                return new ClassicButtonStyleRenderer(element);
+            return new NativeStyleRenderer(base.Handle, element);
         }
     }
 }

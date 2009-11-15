@@ -21,13 +21,12 @@ namespace TaskSharp.Rendering
 {
     public class ClassicStyleRenderer : StyleRenderer
     {
-        protected virtual Brush BackgroundColor
-        {
-            get { return SystemBrushes.ControlLight; }
-        }
         public override void DrawBackground(Graphics graphics, Rectangle bounds)
         {
-            graphics.FillRectangle(BackgroundColor, bounds);
+            graphics.FillRectangle(SystemBrushes.ControlLightLight, bounds);
+            var bounds3d = Rectangle.Inflate(bounds, 0, 0);
+            bounds3d.Y++;
+            graphics.FillRectangle(SystemBrushes.ControlLight, bounds3d);
         }
 
         public override void DrawParentBackground(Graphics graphics, Rectangle bounds, Control childControl)
@@ -36,7 +35,8 @@ namespace TaskSharp.Rendering
 
         public override void DrawText(Graphics graphics, Rectangle bounds, string text)
         {
-            graphics.DrawString(text, SystemFonts.MenuFont, SystemBrushes.ControlText, bounds);
+            TextRenderer.DrawText(graphics, text, SystemFonts.MenuFont, bounds, SystemColors.ControlText, TextFormatFlags.EndEllipsis);
+            //graphics.DrawString(text, SystemFonts.MenuFont, SystemBrushes.ControlText, bounds);
         }
 
         public override void DrawImage(Graphics graphics, Rectangle bounds, Image image)
@@ -48,21 +48,42 @@ namespace TaskSharp.Rendering
         {
             return false;
         }
-
     }
     public class ClassicButtonStyleRenderer : ClassicStyleRenderer
     {
-        protected override Brush BackgroundColor
+        private int _state;
+        public ClassicButtonStyleRenderer(VisualStyleElement element)
         {
-            get { return SystemBrushes.ControlLightLight; }
+            _state = element.State;
         }
         public override void DrawBackground(Graphics graphics, Rectangle bounds)
         {
-            var rect = Rectangle.Inflate(bounds, -2, -2);
-            graphics.FillRectangle(BackgroundColor, rect);
-            ControlPaint.DrawBorder3D(graphics, rect, Border3DStyle.Raised, Border3DSide.Bottom | Border3DSide.Right);
-            rect.Inflate(-1, -1);
-            ControlPaint.DrawBorder3D(graphics, rect, Border3DStyle.RaisedInner, Border3DSide.Top | Border3DSide.Left);
+            var rect = Rectangle.Inflate(bounds, 0, 0);
+            switch (_state)
+            {
+                //case 2: //hot
+                //    //TODO
+                //    break;
+                case 3: //pressed
+                    rect.Inflate(-2, -2);
+                    graphics.FillRectangle(SystemBrushes.ControlLight, rect);
+                    ControlPaint.DrawBorder3D(graphics, rect, Border3DStyle.SunkenOuter, Border3DSide.Bottom | Border3DSide.Right);
+                    rect.Inflate(-1, -1);
+                    ControlPaint.DrawBorder3D(graphics, rect, Border3DStyle.Sunken, Border3DSide.Top | Border3DSide.Left);
+                    rect.Inflate(-1, -1);
+                    ControlPaint.DrawBorder3D(graphics, rect, Border3DStyle.SunkenInner, Border3DSide.Top | Border3DSide.Left);
+                    break;
+                //case 6: //hot+pressed
+                //    //TODO
+                //    break;
+                default: //normal, also fallback
+                    rect.Inflate(-2, -2);
+                    graphics.FillRectangle(SystemBrushes.ControlLight, rect);
+                    ControlPaint.DrawBorder3D(graphics, rect, Border3DStyle.Raised, Border3DSide.Bottom | Border3DSide.Right);
+                    rect.Inflate(-1, -1);
+                    ControlPaint.DrawBorder3D(graphics, rect, Border3DStyle.RaisedInner, Border3DSide.Top | Border3DSide.Left);
+                    break;
+            }
         }
     }
 }
