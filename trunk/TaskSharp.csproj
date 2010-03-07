@@ -48,11 +48,15 @@
     <Reference Include="System.Xml" />
   </ItemGroup>
   <ItemGroup>
+    <Compile Include="Messaging\Mediator.cs" />
+    <Compile Include="Messaging\MediatorMessage.cs" />
+    <Compile Include="Messaging\ScreenChangedMessage.cs" />
+    <Compile Include="Messaging\WindowAddedMessage.cs" />
+    <Compile Include="Messaging\WindowRemovedMessage.cs" />
     <Compile Include="Native\AppBar.cs" />
     <Compile Include="Native\DWM.cs" />
     <Compile Include="Native\TaskbarList.cs" />
     <Compile Include="Rendering\ClassicStyleRenderer.cs" />
-    <Compile Include="WindowBindingList.cs" />
     <Compile Include="WindowManager.cs" />
     <Compile Include="Wrappers\ManagedHdc.cs" />
     <Compile Include="Rendering\ManagedStyleRenderer.cs" />
@@ -93,6 +97,8 @@
       <DependentUpon>Settings.settings</DependentUpon>
       <DesignTimeSharedInput>True</DesignTimeSharedInput>
     </Compile>
+    <Compile Include="Wrappers\NativeWindow.cs" />
+    <Compile Include="Wrappers\ThreadAttach.cs" />
     <Compile Include="Wrappers\VisibleWindow.cs" />
   </ItemGroup>
   <Import Project="$(MSBuildToolsPath)\Microsoft.CSharp.targets" />
