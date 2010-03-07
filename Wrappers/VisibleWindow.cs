@@ -16,32 +16,27 @@
 using System;
 using System.Collections.Generic;
 using System.ComponentModel;
-using System.Diagnostics;
 using System.Drawing;
-using System.IO;
 using System.Linq.Expressions;
 using System.Windows.Forms;
 using TaskSharp.Native;
+using TaskSharp.Messaging;
 
 namespace TaskSharp.Wrappers
 {
     public sealed class VisibleWindow : IEquatable<VisibleWindow>, INotifyPropertyChanged
     {
         private readonly string _title;
-        private readonly string _exeName;
-        private readonly string _exePath;
         private readonly IntPtr _hwnd;
         private readonly Icon _icon;
-        private readonly Process _process;
+        private readonly string _process;
 
-        public VisibleWindow(Process process)
+        public VisibleWindow(NativeWindow window)
         {
-            _process = process;
-            _title = process.MainWindowTitle;
-            _exePath = process.MainModule.FileName;
-            _exeName = Path.GetFileName(_exePath);
-            _hwnd = process.MainWindowHandle;
-            _icon = Icon.ExtractAssociatedIcon(_exePath);
+            _process = window.Process;
+            _title = window.Title;
+            _hwnd = window.hWnd;
+            _icon = window.Icon;
         }
 
         private void Restore()
@@ -77,7 +72,7 @@ namespace TaskSharp.Wrappers
         public void ShowSystemMenu(Point pos)
         {
             //0x313 seems to be undocumented, but works
-            Win32.SendMessage(Hwnd, 0x313, IntPtr.Zero, new IntPtr(pos.X | (pos.Y << 16)));
+            Win32.SendMessage(Hwnd, 0x313, 0, pos.X | (pos.Y << 16));
         }
         public override bool Equals(object obj)
         {
@@ -101,7 +96,7 @@ namespace TaskSharp.Wrappers
         }
         public override string ToString()
         {
-            return string.Format("{0} ({1}x{2})", _title, _hwnd, Screen);
+            return string.Format("{0} ({1})", _title, Screen);
         }
 
         public FormWindowState WindowState
@@ -111,7 +106,6 @@ namespace TaskSharp.Wrappers
         private bool _isForeground;
         public bool IsForeground
         {
-            //get { return Win32.GetForegroundWindow() == Hwnd; }
             get { return _isForeground; }
             internal set
             {
@@ -130,14 +124,6 @@ namespace TaskSharp.Wrappers
         {
             get { return _title; }
         }
-        public string ExeName
-        {
-            get { return _exeName; }
-        }
-        public string ExePath
-        {
-            get { return _exePath; }
-        }
         public IntPtr Hwnd
         {
             get { return _hwnd; }
@@ -152,11 +138,9 @@ namespace TaskSharp.Wrappers
             get { return _screen; }
             internal set
             {
-                if (value != _screen)
-                {
-                    _screen = value;
-                    FirePropertyChanged(() => Screen);
-                }
+                _screen = value;
+                FirePropertyChanged(() => Screen);
+                Mediator.Send(new ScreenChangedMessage { Window = this });
             }
         }
 

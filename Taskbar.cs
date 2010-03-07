@@ -15,11 +15,11 @@
 
 using System;
 using System.Collections.Generic;
-using System.ComponentModel;
 using System.Drawing;
 using System.Linq;
 using System.Windows.Forms;
 using System.Windows.Forms.VisualStyles;
+using TaskSharp.Messaging;
 using TaskSharp.Native;
 using TaskSharp.Rendering;
 using TaskSharp.Wrappers;
@@ -83,6 +83,25 @@ namespace TaskSharp
             //}
         }
 
+        private void ScreenChanged(ScreenChangedMessage message)
+        {
+            //TODO: this looks too complicated, make it easier
+            var window = message.Window;
+            if (window.Screen.Equals(_screen))
+            {
+                if (_buttonMap.ContainsKey(window.Hwnd))
+                    window.ShowButtonOnTaskbar(false);
+                else
+                    InvokeOrNot(() => AddButton(window));
+            }
+            else
+                InvokeOrNot(() => RemoveButton(window));
+        }
+        private void AddButton(WindowAddedMessage message)
+        {
+            if (message.Window.Screen.Equals(_screen))
+                InvokeOrNot(() => AddButton(message.Window));
+        }
         private void AddButton(VisibleWindow window)
         {
             if (!_buttonMap.ContainsKey(window.Hwnd))
@@ -96,6 +115,11 @@ namespace TaskSharp
                 _buttonMap.Add(window.Hwnd, btn);
                 window.ShowButtonOnTaskbar(false);
             }
+        }
+        private void RemoveButton(WindowRemovedMessage message)
+        {
+            if (message.Window.Screen.Equals(_screen))
+                InvokeOrNot(() => RemoveButton(message.Window));
         }
         private void RemoveButton(VisibleWindow window)
         {
@@ -167,7 +191,7 @@ namespace TaskSharp
             }
 
             AppBar.Register(this, edge, fs);
-            WindowManager.OpenWindows.WindowListChanged += OpenWindows_WindowListChanged;
+            Mediator.Subscribe(this);
         }
 
         private void InvokeOrNot(MethodInvoker method)
@@ -178,58 +202,6 @@ namespace TaskSharp
                 Invoke(method);
             else
                 method();
-        }
-        void OpenWindows_WindowListChanged(object sender, WindowListChangedEventArgs e)
-        {
-            if (IsDisposed)
-                return;
-            VisibleWindow changedItem = e.Window;
-            if (e.ListChangedType != ListChangedType.ItemChanged &&
-                (changedItem == null ||
-                 changedItem.Screen == null ||
-                 !changedItem.Screen.Equals(_screen)))
-                return;
-
-            switch (e.ListChangedType)
-            {
-                case ListChangedType.ItemAdded:
-                    InvokeOrNot(() => AddButton(changedItem));
-                    break;
-                case ListChangedType.ItemChanged:
-                    if (e.PropertyDescriptor != null)
-                    {
-                        if (e.PropertyDescriptor.Name == "Screen")
-                        {
-                            InvokeOrNot(() =>
-                            {
-                                if (changedItem.Screen.Equals(_screen))
-                                    AddButton(changedItem);
-                                else
-                                    RemoveButton(changedItem);
-                            });
-                        }
-                        else if (e.PropertyDescriptor.Name == "IsForeground" && _buttonMap.ContainsKey(changedItem.Hwnd))
-                        {
-                            InvokeOrNot(() => _buttonMap[changedItem.Hwnd].Invalidate());
-                        }
-                    }
-                    break;
-                case ListChangedType.ItemDeleted:
-                    InvokeOrNot(() => RemoveButton(changedItem));
-                    break;
-                case ListChangedType.ItemMoved:
-                    break;
-                case ListChangedType.PropertyDescriptorAdded:
-                    break;
-                case ListChangedType.PropertyDescriptorChanged:
-                    break;
-                case ListChangedType.PropertyDescriptorDeleted:
-                    break;
-                case ListChangedType.Reset:
-                    break;
-                default:
-                    break;
-            }
         }
 
         private static StyleRenderer GetRenderer(AppBarEdge edge)

@@ -19,22 +19,23 @@ using System.Linq;
 using System.Timers;
 using TaskSharp.Native;
 using TaskSharp.Wrappers;
+using TaskSharp.Messaging;
 
 namespace TaskSharp
 {
     public static class WindowManager
     {
         private static Timer _timer;
-        private static WindowBindingList _openWindows = new WindowBindingList();
+        private static List<VisibleWindow> _openWindows = new List<VisibleWindow>();
 
-        public static WindowBindingList OpenWindows
+        public static List<VisibleWindow> OpenWindows
         {
             get { return _openWindows; }
         }
 
         public static void Start()
         {
-            _timer = new Timer(500);
+            _timer = new Timer(10);
             //_timer = new Timer(1000);
             _timer.AutoReset = true;
             _timer.Elapsed += Timer_Elapsed;
@@ -51,23 +52,27 @@ namespace TaskSharp
         private static void Timer_Elapsed(object sender, ElapsedEventArgs e)
         {
             var activeWindow = Win32.GetForegroundWindow();
-
             var windows = new List<VisibleWindow>();
-            foreach (var p in Process.GetProcesses())
+
+            var nativeWindows = NativeWindow.EnumerateWindows();
+            foreach (NativeWindow wnd in nativeWindows)
             {
-                var hWnd = p.MainWindowHandle;
-                if (/*!string.IsNullOrEmpty(p.MainWindowTitle) &&*/ Win32.HasWindow(hWnd))
+                var hWnd = wnd.hWnd;
+                if (Win32.HasWindow(hWnd))
                 {
                     var screen = Win32.GetScreenFromWindow(hWnd);
-                    VisibleWindow window = new VisibleWindow(p);
+
+                    VisibleWindow window = _openWindows.FirstOrDefault(w => w.Hwnd == hWnd) ?? new VisibleWindow(wnd);
                     windows.Add(window);
-                    if (_openWindows.Contains(window))
-                        window = _openWindows.First(w => w.Equals(window));
                     window.Screen = screen;
                     window.IsForeground = window.Hwnd == activeWindow;
+
+                    if (!_openWindows.Contains(window))
+                        Mediator.Send(new WindowAddedMessage { Window = window });
                 }
             }
-
+            //TODO: remove this, mediator will notify about added stuff.
+            //      removal and screen change...find a better place for it.
             if (windows.Any())
             {
                 //TODO: sometimes a window gets lost in the loop above,
@@ -77,7 +82,10 @@ namespace TaskSharp
                 foreach (var newWindow in newWindows)
                     _openWindows.Add(newWindow);
                 foreach (var oldWindow in goneWindows)
+                {
                     _openWindows.Remove(oldWindow);
+                    Mediator.Send(new WindowRemovedMessage { Window = oldWindow });
+                }
             }
         }
     }

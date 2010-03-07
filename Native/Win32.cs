@@ -16,6 +16,7 @@
 using System;
 using System.Drawing;
 using System.Runtime.InteropServices;
+using System.Text;
 using System.Windows.Forms;
 
 namespace TaskSharp.Native
@@ -23,6 +24,10 @@ namespace TaskSharp.Native
     public static class Win32
     {
         public const int GWL_STYLE = -16;
+        public const int ICON_SMALL = 0;
+        public const int ICON_BIG = 1;
+        public const int ICON_SMALL2 = 2;
+        public const int WM_GETICON = 0x7F;
 
         [StructLayout(LayoutKind.Sequential)]
         public struct RECT
@@ -109,7 +114,7 @@ namespace TaskSharp.Native
             Visible = 0x10000000,
             VScroll = 0x200000,
 
-            ExToolWindow  = 0x00000080,
+            ExToolWindow = 0x00000080,
             ExAppWindow = 0x00040000,
             ExNoActivate = 0x08000000,
         }
@@ -135,7 +140,7 @@ namespace TaskSharp.Native
         }
 
         [DllImport("user32.dll", CharSet = CharSet.Auto)]
-        public static extern IntPtr SendMessage(IntPtr hWnd, uint Msg, IntPtr wParam, IntPtr lParam);
+        public static extern IntPtr SendMessage(IntPtr hWnd, uint Msg, int wParam, int lParam);
 
         [DllImport("user32.dll")]
         [return: MarshalAs(UnmanagedType.U4)]
@@ -155,6 +160,29 @@ namespace TaskSharp.Native
         public static extern bool SetForegroundWindow(IntPtr hWnd);
         [DllImport("user32.dll")]
         public static extern int ShowWindow(IntPtr hwnd, SW nCmdShow);
+        [DllImport("user32.dll")]
+        public static extern bool ShowWindowAsync(IntPtr hWnd, SW nCmdShow);
+
+        [DllImport("user32.dll")]
+        public static extern bool IsZoomed(IntPtr hWnd);
+        [DllImport("user32.dll")]
+        public static extern bool IsIconic(IntPtr hWnd);
+        [DllImport("user32.dll")]
+        public static extern IntPtr GetWindowThreadProcessId(IntPtr hWnd, IntPtr ProcessId);
+        [DllImport("user32.dll")]
+        public static extern bool AttachThreadInput(IntPtr idAttach, IntPtr idAttachTo, bool fAttach);
+
+        [DllImport("user32.dll")]
+        public static extern int GetWindowText(IntPtr hWnd, StringBuilder title, int size);
+        [DllImport("user32.dll")]
+        public static extern int GetWindowModuleFileName(IntPtr hWnd, StringBuilder title, int size);
+
+        [DllImport("user32.dll", EntryPoint = "GetClassLong")]
+        public static extern uint GetClassLong(IntPtr hWnd, [MarshalAs(UnmanagedType.I4)]GCL nIndex);
+        [DllImport("user32.dll", EntryPoint = "GetClassLongPtr")]
+        public static extern uint GetClassLongPtr(IntPtr hWnd, [MarshalAs(UnmanagedType.I4)]GCL nIndex);
+
+
         [DllImport("user32.dll")]
         [return: MarshalAs(UnmanagedType.Bool)]
         public static extern bool IsWindowVisible(IntPtr hWnd);
@@ -177,6 +205,11 @@ namespace TaskSharp.Native
             Child = 5,
             EnabledPopup = 6
         }
+        public enum GCL
+        {
+            HICONSM = -34,
+            HICON = -14,
+        }
 
         [DllImport("user32.dll")]
         public static extern bool GetCursorPos(ref POINT lpPoint);
@@ -192,6 +225,31 @@ namespace TaskSharp.Native
             public Point ptMinPosition;
             public Point ptMaxPosition;
             public Rectangle rcNormalPosition;
+        }
+        public static uint GetWindowClassLong(IntPtr hWnd, GCL nIndex)
+        {
+            if (IntPtr.Size > 4)
+                return GetClassLongPtr(hWnd, nIndex);
+            else
+                return GetClassLong(hWnd, nIndex);
+        }
+
+        public static Icon GetApplicationIcon(IntPtr hwnd)
+        {
+            IntPtr iconHandle = Win32.SendMessage(hwnd, WM_GETICON, ICON_SMALL2, 0);
+            if (iconHandle == IntPtr.Zero)
+                iconHandle = Win32.SendMessage(hwnd, WM_GETICON, ICON_SMALL, 0);
+            if (iconHandle == IntPtr.Zero)
+                iconHandle = Win32.SendMessage(hwnd, WM_GETICON, ICON_BIG, 0);
+            if (iconHandle == IntPtr.Zero)
+                iconHandle = (IntPtr)Win32.GetWindowClassLong(hwnd, Win32.GCL.HICON);
+            if (iconHandle == IntPtr.Zero)
+                iconHandle = (IntPtr)Win32.GetWindowClassLong(hwnd, Win32.GCL.HICONSM);
+
+            if (iconHandle == IntPtr.Zero)
+                return null;
+
+            return Icon.FromHandle(iconHandle);
         }
 
         public static void ShowTaskbarButton(IntPtr hwnd, bool remove)
